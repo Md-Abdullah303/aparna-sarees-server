@@ -35,12 +35,8 @@ export async function requireAuth(
       return;
     }
 
-    // Hash the token since better-auth stores it hashed
-    const crypto = require('crypto');
-    const hashedToken = crypto.createHash('sha256').update(sessionToken).digest('hex');
-
     const db = require('../config/db').getDB();
-    const session = await db.collection("session").findOne({ token: hashedToken });
+    const session = await db.collection("session").findOne({ token: sessionToken });
 
     if (!session || !session.userId) {
       res.status(401).json({ message: "Unauthorized: invalid or expired session" });
