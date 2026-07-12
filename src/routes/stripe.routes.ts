@@ -9,7 +9,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 // POST /api/stripe/create-payment-intent
 router.post("/create-payment-intent", async (req: Request, res: Response) => {
   try {
-    const { amount, sareeId, sareeName } = req.body;
+    const { amount, sareeId, sareeName, userEmail } = req.body;
 
     if (!amount || typeof amount !== "number" || amount < 1) {
       res.status(400).json({ message: "Invalid amount." });
@@ -24,6 +24,7 @@ router.post("/create-payment-intent", async (req: Request, res: Response) => {
       metadata: {
         sareeId: sareeId || "",
         sareeName: sareeName || "",
+        userEmail: userEmail || "",
       },
     });
 
@@ -31,6 +32,27 @@ router.post("/create-payment-intent", async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error("Stripe error:", err.message);
     res.status(500).json({ message: err.message || "Payment failed." });
+  }
+});
+
+// GET /api/stripe/payments — List recent payment intents
+router.get("/payments", async (req: Request, res: Response) => {
+  try {
+    const email = req.query.email as string;
+    
+    // Fetch recent payment intents
+    const list = await stripe.paymentIntents.list({ limit: 100 });
+    
+    // Filter by user email if provided
+    let userPayments = list.data;
+    if (email) {
+      userPayments = list.data.filter((p) => p.metadata?.userEmail === email);
+    }
+
+    res.json({ payments: userPayments });
+  } catch (err: any) {
+    console.error("Stripe list error:", err.message);
+    res.status(500).json({ message: err.message || "Failed to fetch payments." });
   }
 });
 
