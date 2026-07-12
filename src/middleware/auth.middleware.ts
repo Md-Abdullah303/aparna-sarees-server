@@ -21,6 +21,9 @@ export async function requireAuth(
     const cookieMatch = cookieHeader.match(/better-auth\.session_token=([^;]+)/);
     if (cookieMatch) {
       sessionToken = decodeURIComponent(cookieMatch[1]);
+      if (sessionToken.includes('.')) {
+        sessionToken = sessionToken.split('.')[0];
+      }
     }
 
     if (!sessionToken) {
@@ -30,6 +33,9 @@ export async function requireAuth(
       }
     }
 
+    console.log("Cookie Header:", cookieHeader);
+    console.log("Extracted Token:", sessionToken);
+
     if (!sessionToken) {
       res.status(401).json({ message: "Unauthorized: no session token" });
       return;
@@ -37,6 +43,7 @@ export async function requireAuth(
 
     const db = require('../config/db').getDB();
     const session = await db.collection("session").findOne({ token: sessionToken });
+    console.log("DB Session found:", session ? "YES" : "NO");
 
     if (!session || !session.userId) {
       res.status(401).json({ message: "Unauthorized: invalid or expired session" });
