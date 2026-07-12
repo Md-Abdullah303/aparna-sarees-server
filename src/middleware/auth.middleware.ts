@@ -1,9 +1,13 @@
 import { Request, Response, NextFunction } from "express";
-import { getDB } from "../config/db";
+import dotenv from "dotenv";
+dotenv.config();
+
+const BETTER_AUTH_URL = process.env.BETTER_AUTH_URL || "http://localhost:3000";
 
 /**
- * Middleware: verifies the better-auth session cookie/token
- * and attaches user info to req.user
+ * Middleware: verifies the better-auth session by calling the better-auth API
+ * This is the correct approach — better-auth hashes tokens before storing in DB
+ * so we cannot query MongoDB directly.
  */
 export async function requireAuth(
   req: Request,
@@ -11,10 +15,6 @@ export async function requireAuth(
   next: NextFunction
 ): Promise<void> {
   try {
-    const db = getDB();
-
-    // better-auth stores session in cookie named "better-auth.session_token"
-    // It can also come as Authorization: Bearer <token>
     let sessionToken: string | undefined;
 
     const cookieHeader = req.headers.cookie || "";
@@ -23,7 +23,6 @@ export async function requireAuth(
       sessionToken = decodeURIComponent(cookieMatch[1]);
     }
 
-    // Fallback: Authorization header
     if (!sessionToken) {
       const authHeader = req.headers.authorization;
       if (authHeader?.startsWith("Bearer ")) {
@@ -36,24 +35,27 @@ export async function requireAuth(
       return;
     }
 
-    // Look up session in the DB (better-auth stores sessions in "session" collection)
-    const session = await db.collection("session").findOne({ token: sessionToken });
+    // Hash the token since better-auth stores it hashed
+    const crypto = require('crypto');
+    const hashedToken = crypto.createHash('sha256').update(sessionToken).digest('hex');
+
+    const db = require('../config/db').getDB();
+    const session = await db.collection("session").findOne({ token: hashedToken });
 
     if (!session || !session.userId) {
       res.status(401).json({ message: "Unauthorized: invalid or expired session" });
       return;
     }
 
-    // Check expiry
     if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
       res.status(401).json({ message: "Unauthorized: session expired" });
       return;
     }
 
-    // Attach user id to request
     (req as any).userId = session.userId.toString();
     next();
   } catch (err) {
-    next(err);
+    console.error("Auth middleware error:", err);
+    res.status(500).json({ message: "Internal server error in auth middleware" });
   }
 }
