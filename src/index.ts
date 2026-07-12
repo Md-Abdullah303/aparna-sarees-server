@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { connectDB } from "./config/db";
 import sareeRoutes from "./routes/saree.routes";
 import contactRoutes from "./routes/contact.routes";
+import stripeRoutes from "./routes/stripe.routes";
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.get("/", (_req, res) => {
 
 app.use("/api/sarees", sareeRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/stripe", stripeRoutes);
 
 // ─── Start ────────────────────────────────────────────────
 async function startServer() {
