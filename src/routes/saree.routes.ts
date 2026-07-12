@@ -70,7 +70,7 @@ router.get("/", async (req: Request, res: Response) => {
     const { search, category, minPrice, maxPrice, sortBy } = req.query;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const query: Record<string, any> = { isAvailable: true };
+    const query: Record<string, any> = {};
 
     // Search by name or description
     if (search && typeof search === "string" && search.trim()) {
