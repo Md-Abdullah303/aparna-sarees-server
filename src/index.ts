@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { connectDB } from "./config/db";
 import sareeRoutes from "./routes/saree.routes";
+import contactRoutes from "./routes/contact.routes";
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/api/sarees", sareeRoutes);
+app.use("/api/contact", contactRoutes);
 
 // ─── Start ────────────────────────────────────────────────
 async function startServer() {

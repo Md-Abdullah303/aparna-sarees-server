@@ -62,15 +62,49 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// ─── GET /api/sarees ─── Get all sarees (public)
-router.get("/", async (_req: Request, res: Response) => {
+// ─── GET /api/sarees ─── Get all sarees (public) with search & filter
+router.get("/", async (req: Request, res: Response) => {
   try {
     const db = getDB();
+
+    const { search, category, minPrice, maxPrice, sortBy } = req.query;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const query: Record<string, any> = { isAvailable: true };
+
+    // Search by name or description
+    if (search && typeof search === "string" && search.trim()) {
+      query.$or = [
+        { name: { $regex: search.trim(), $options: "i" } },
+        { description: { $regex: search.trim(), $options: "i" } },
+        { tags: { $elemMatch: { $regex: search.trim(), $options: "i" } } },
+      ];
+    }
+
+    // Filter by category
+    if (category && typeof category === "string" && category !== "all") {
+      query.category = { $regex: `^${category.trim()}$`, $options: "i" };
+    }
+
+    // Filter by price range
+    if (minPrice || maxPrice) {
+      query.price = {};
+      if (minPrice) query.price.$gte = Number(minPrice);
+      if (maxPrice) query.price.$lte = Number(maxPrice);
+    }
+
+    // Sort options
+    let sortOption: Record<string, 1 | -1> = { createdAt: -1 };
+    if (sortBy === "price_asc") sortOption = { price: 1 };
+    else if (sortBy === "price_desc") sortOption = { price: -1 };
+    else if (sortBy === "name_asc") sortOption = { name: 1 };
+
     const sarees = await db
       .collection("sarees")
-      .find({ isAvailable: true })
-      .sort({ createdAt: -1 })
+      .find(query)
+      .sort(sortOption)
       .toArray();
+
     res.json(sarees);
   } catch (err) {
     res.status(500).json({ message: "Internal server error" });
