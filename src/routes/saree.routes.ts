@@ -6,6 +6,11 @@ import { Saree } from "../types/saree.types";
 
 const router = Router();
 
+function toObjectId(id: string | string[]): ObjectId {
+  const value = Array.isArray(id) ? id[0] : id;
+  return new ObjectId(value);
+}
+
 // ─── POST /api/sarees ─── Add new saree (protected)
 router.post("/", requireAuth, async (req: Request, res: Response) => {
   try {
@@ -32,7 +37,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
       return;
     }
 
-    const newSaree: Saree = {
+    const newSaree: Omit<Saree, "_id"> = {
       name: String(name),
       description: String(description || ""),
       price: Number(price),
@@ -133,7 +138,7 @@ router.get("/:id", async (req: Request, res: Response) => {
     const db = getDB();
     const saree = await db
       .collection("sarees")
-      .findOne({ _id: new ObjectId(req.params.id) });
+      .findOne({ _id: toObjectId(req.params.id) });
     if (!saree) {
       res.status(404).json({ message: "Saree not found" });
       return;
@@ -152,7 +157,7 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
 
     const existing = await db
       .collection("sarees")
-      .findOne({ _id: new ObjectId(req.params.id) });
+      .findOne({ _id: toObjectId(req.params.id) });
 
     if (!existing) {
       res.status(404).json({ message: "Saree not found" });
@@ -168,7 +173,7 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
 
     await db
       .collection("sarees")
-      .updateOne({ _id: new ObjectId(req.params.id) }, { $set: updates });
+      .updateOne({ _id: toObjectId(req.params.id) }, { $set: updates });
 
     res.json({ message: "Saree updated successfully!" });
   } catch (err) {
@@ -184,7 +189,7 @@ router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
 
     const existing = await db
       .collection("sarees")
-      .findOne({ _id: new ObjectId(req.params.id) });
+      .findOne({ _id: toObjectId(req.params.id) });
 
     if (!existing) {
       res.status(404).json({ message: "Saree not found" });
@@ -195,7 +200,7 @@ router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
       return;
     }
 
-    await db.collection("sarees").deleteOne({ _id: new ObjectId(req.params.id) });
+    await db.collection("sarees").deleteOne({ _id: toObjectId(req.params.id) });
     res.json({ message: "Saree deleted successfully!" });
   } catch (err) {
     res.status(500).json({ message: "Internal server error" });

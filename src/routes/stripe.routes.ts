@@ -46,7 +46,7 @@ router.get("/payments", async (req: Request, res: Response) => {
     // Filter by user email if provided
     let userPayments = list.data;
     if (email) {
-      userPayments = list.data.filter((p) => p.metadata?.userEmail === email);
+      userPayments = list.data.filter((p: { metadata?: { userEmail?: string } }) => p.metadata?.userEmail === email);
     }
 
     res.json({ payments: userPayments });
